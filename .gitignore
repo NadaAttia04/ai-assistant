@@ -46,6 +46,9 @@ flutter_app/ios/Runner/GeneratedPluginRegistrant.*
 # Gradle cache (redirected to D:/)
 D:/gradle-home/
 
+# Java heap dumps
+*.hprof
+
 # ── IDE / OS ───────────────────────────────────────────────────────────────────
 .idea/
 .vscode/
