@@ -88,6 +88,14 @@ static const _base = 'http://localhost:5000';
 static const _base = 'http://192.168.1.x:5000';
 ```
 
+### Android firewall (Windows host only)
+
+If the app can't reach the backend from a physical device, allow port 5000 through the Windows firewall:
+
+```
+netsh advfirewall firewall add rule name="Flask 5000" dir=in action=allow protocol=TCP localport=5000
+```
+
 ### Run on Android emulator
 
 ```bash
@@ -99,41 +107,67 @@ flutter run
 1. **Settings → About Phone** → tap Build Number 7 times
 2. **Settings → Developer Options** → enable:
    - USB Debugging
-   - USB Debugging (Security settings)  ← required on Xiaomi/HyperOS
+   - USB Debugging (Security settings) ← required on Xiaomi/HyperOS
    - Install via USB
 3. Plug in via USB → tap **Allow** on the phone popup
 4. Update `_base` to your machine's local IP
 5. Run:
 
 ```bash
-# Build APK and push manually (avoids install restrictions)
+flutter run -d <device-id>
+```
+
+Or build and push manually (if ADB install is restricted):
+```bash
 flutter build apk --debug
 adb push build/app/outputs/flutter-apk/app-debug.apk //sdcard/Download/app.apk
 # Then open Files app on phone → Downloads → tap app.apk → Install
 ```
 
-Or run directly if ADB install works:
-```bash
-flutter run -d <device-id>
-```
+### Xiaomi / MIUI — Speech Recognition
+
+For voice input (STT) to work on Xiaomi devices, set Google as the default voice recognizer:
+
+**Settings → Manage apps → Default apps → Voice recognition → Google**
 
 ### Android build notes
 
-If you get **"not enough disk space"** on C: drive, redirect Gradle cache to another drive by adding to `android/gradle.properties`:
+If you get **"not enough disk space"** on C: drive, redirect Gradle cache:
 
 ```properties
+# android/gradle.properties
 GRADLE_USER_HOME=D:/gradle-home
 ```
 
-If you get **Java heap space** error, add to `android/gradle.properties`:
+If you get **Java heap space** error:
 
 ```properties
+# android/gradle.properties
 org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=512m
 ```
 
 ---
 
-## 3. Environment Variables
+## 3. Android Config
+
+| Setting | Value |
+|---------|-------|
+| `minSdk` | 24 |
+| `compileSdk` | 36 |
+| Kotlin | 2.1.0 |
+| Core library desugaring | enabled (`desugar_jdk_libs:2.1.2`) |
+
+**Permissions required:**
+- `INTERNET`
+- `RECORD_AUDIO` — voice input (STT)
+- `READ_MEDIA_IMAGES` — image attachments in chat
+- `POST_NOTIFICATIONS` — medication/appointment/order/message alerts
+- `RECEIVE_BOOT_COMPLETED` — reschedule reminders after reboot
+- `SCHEDULE_EXACT_ALARM` / `USE_EXACT_ALARM` — medication reminders
+
+---
+
+## 4. Environment Variables
 
 | Variable        | Required | Description                                  |
 |-----------------|----------|----------------------------------------------|
@@ -144,7 +178,7 @@ org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=512m
 
 ---
 
-## 4. AI Model Configuration
+## 5. AI Model Configuration
 
 Models are tried in order until one succeeds (`backend/modules/ai.py`):
 
