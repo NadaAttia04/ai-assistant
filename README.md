@@ -199,18 +199,6 @@ ai-assistant/
 - Core library desugaring enabled (`isCoreLibraryDesugaringEnabled = true`)
 - Permissions: `INTERNET`, `RECORD_AUDIO`, `READ_MEDIA_IMAGES`, `POST_NOTIFICATIONS`, `RECEIVE_BOOT_COMPLETED`, `SCHEDULE_EXACT_ALARM`, `USE_EXACT_ALARM`
 
-## 🧑‍💻 Author
-
-- **Nada Attia** → [GitHub Profile](https://github.com/NadaAttia04)  
-- **Farida Ayman** → [GitHub Profile](https://github.com/FaridaAyman)  
-- **Rodina Ahmed** → [GitHub Profile](https://github.com/RodinaAhmed)
-
----
-
-⭐ *If you like this project, don't forget to star the repository!*
-
-
-
 ---
 
 ## AI Reliability
@@ -227,3 +215,16 @@ The backend uses a **retry + fallback** strategy:
 - [API Reference](docs/API.md)
 - [Setup Guide](docs/SETUP.md)
 - [Screen Descriptions](docs/SCREENS.md)
+
+- ## 🧑‍💻 Author
+
+- **Nada Attia** → [GitHub Profile](https://github.com/NadaAttia04)  
+- **Farida Ayman** → [GitHub Profile](https://github.com/FaridaAyman)  
+- **Rodina Ahmed** → [GitHub Profile](https://github.com/RodinaAhmed)
+
+---
+
+⭐ *If you like this project, don't forget to star the repository!*
+
+
+
