@@ -3,175 +3,271 @@
 ## Navigation Flow
 
 ```
-SplashScreen (1.5s)
-    └── HomeScreen
-            ├── [New Patient] ──► SymptomsScreen
-            │                         └── InvestigationScreen
-            │                                  └── ManagementScreen
-            │                                           └── ReportScreen
-            │                                                    └── HomeScreen
-            └── [Chat AI] ──► ChatIntroScreen
-                                   └── ChatScreen
+SplashScreen
+    └── checks user_id (SharedPreferences)
+            ├── [logged in] → checks user_role → PatientHomeScreen | DoctorDashboardScreen
+            └── [not logged in] → LoginScreen
+                                      ├── [patient] → RoleScreen → PatientHomeScreen
+                                      ├── [doctor]  → RoleScreen → DoctorDashboardScreen
+                                      └── [guest]   → PatientHomeScreen
+
+PatientHomeScreen
+    ├── AI Chat ──────────────────────────► ChatIntroScreen → ChatScreen
+    ├── Book a Doctor ────────────────────► DoctorBookingSheet
+    ├── Pharmacy ─────────────────────────► PharmacyScreen → CartScreen → CheckoutScreen
+    ├── Medication Reminders ─────────────► MedicationScreen
+    ├── Consultations ────────────────────► ConsultationListScreen → ConsultationScreen
+    ├── Activity Tracking ────────────────► ActivityScreen
+    ├── Support ──────────────────────────► SupportSheet
+    └── Profile (drawer) ─────────────────► ProfileScreen
+
+DoctorDashboardScreen
+    ├── New Patient ──────────────────────► SymptomsScreen → InvestigationScreen → ManagementScreen → ReportScreen
+    ├── AI Chat ──────────────────────────► ChatIntroScreen → ChatScreen
+    ├── Appointments ─────────────────────► AppointmentsScreen
+    ├── Patient Queue ────────────────────► PatientListScreen
+    ├── Activity ─────────────────────────► ActivityScreen
+    ├── Consultations ────────────────────► ConsultationListScreen → ConsultationScreen
+    └── Profile (drawer) ─────────────────► ProfileScreen
 ```
 
 ---
 
-## 1. SplashScreen
+## Auth Screens
 
+### SplashScreen
 **File:** `lib/screens/splash_screen.dart`
 
-**Purpose:** App entry point with animated logo. Auto-navigates to HomeScreen.
-
-**Behavior:**
-- Fade + scale animation plays over 1.2s
-- After 2.2s total, fades to HomeScreen
-
-**No API calls.**
+Animated logo entry point. Checks `user_id` in SharedPreferences — if logged in, redirects directly to the appropriate home screen based on `user_role`. Otherwise navigates to LoginScreen.
 
 ---
 
-## 2. HomeScreen
+### LoginScreen
+**File:** `lib/screens/auth/login_screen.dart`
 
-**File:** `lib/screens/home_screen.dart`
+Tabbed UI with **Sign In** and **Register** tabs.
 
-**Purpose:** Main menu with two navigation options.
+- **Sign In** — email + password → `POST /auth/login`
+- **Register** — name, email, password, role (Patient/Doctor) → `POST /auth/register`
+- **Forgot Password?** — email field → `POST /auth/forgot_password`
+- **Continue as Guest** — skips auth, proceeds as patient with `user_id = "guest"`
 
-**UI Elements:**
-- App logo + title header
-- "New Patient" card → navigates to SymptomsScreen
-- "Chat AI" card → navigates to ChatIntroScreen
-
-**No API calls.**
+On success, saves `user_id`, `user_name`, and `user_role` to SharedPreferences.
 
 ---
 
-## 3. SymptomsScreen
+### RoleScreen
+**File:** `lib/screens/role_screen.dart`
 
+Shown after first login if role needs confirmation. Two cards: Patient and Doctor. Saves selected role and navigates to the appropriate home screen.
+
+---
+
+## Patient Screens
+
+### PatientHomeScreen
+**File:** `lib/screens/patient/patient_home_screen.dart`
+
+Service hub for patients. Hero Chatbot card at top + 6-item service grid:
+
+| Card | Navigates To |
+|------|-------------|
+| Book a Doctor | DoctorBookingSheet |
+| Pharmacy | PharmacyScreen |
+| Medication Reminders | MedicationScreen |
+| Support | SupportSheet |
+| Activity | ActivityScreen |
+| Consultations | ConsultationListScreen |
+
+---
+
+## Doctor Screens
+
+### DoctorDashboardScreen
+**File:** `lib/screens/doctor/doctor_dashboard_screen.dart`
+
+Stats header (patients today, appointments, consultations) + quick action grid.
+
+**API Calls:** Stats loaded from backend on mount.
+
+---
+
+### AppointmentsScreen
+**File:** `lib/screens/doctor/appointments_screen.dart`
+
+Tabbed view: **Upcoming** and **Past** appointments. Each appointment shows patient name, time, and status.
+
+---
+
+### PatientListScreen
+**File:** `lib/screens/doctor/patient_list_screen.dart`
+
+Priority-sorted patient queue. Each row shows patient name, severity badge, and time registered.
+
+---
+
+## New Patient Flow (Doctor)
+
+### SymptomsScreen
 **File:** `lib/screens/patient/symptoms_screen.dart`
 
-**Purpose:** Collect patient information and symptoms to register a new patient.
+Form to register a new patient: name, age, sex, allergies, pre-existing conditions, symptoms.
 
-**Form Fields:**
-| Field | Required | Notes |
-|-------|----------|-------|
-| Full Name | Yes | |
-| Age | Yes | Numeric |
-| Sex | Yes | Dropdown: Male / Female |
-| Allergies | No | Free text |
-| Pre-existing Conditions | No | Free text |
-| Symptoms | Yes | Multi-line, describe in detail |
-
-**On Submit:**
-1. Validates all required fields
-2. Calls `POST /patients` with form data
-3. Shows loading state: "AI is analysing patient data..."
-4. Backend AI generates investigations + management plan
-5. Navigates to InvestigationScreen with `patient_id`
-
-**API Call:** `POST /patients`
+**On Submit:** `POST /patients` → navigates to InvestigationScreen with `patient_id`.
 
 ---
 
-## 4. InvestigationScreen
-
+### InvestigationScreen
 **File:** `lib/screens/patient/investigation_screen.dart`
 
-**Purpose:** Display the AI-recommended investigations. Allow doctor to enter results for each.
-
-**UI:**
-- Numbered list of investigation items
-- Items without results show: "Tap to enter result" + edit icon
-- Items with results show the result text + checkmark
-- Tapping opens a dialog to enter/edit the result
-
-**On Result Save:**
-1. Calls `PUT /investigations/:id` with result text + patient_id
-2. Backend AI reconsiders management plan with new data
-3. Shows snackbar: "Result saved. Management plan updated by AI."
-4. Refreshes the list
+Numbered list of AI-recommended investigations. Tap any item to enter the lab/test result via a dialog. On save, AI reconsiders the management plan.
 
 **API Calls:**
-- `GET /patients/:patient_id/investigations` (on load)
-- `PUT /investigations/:investigation_id` (on each result save)
-
-**Navigation:** Next → ManagementScreen | Back → SymptomsScreen
+- `GET /patients/:patient_id/investigations` (load)
+- `PUT /investigations/:investigation_id` (save result)
 
 ---
 
-## 5. ManagementScreen
-
+### ManagementScreen
 **File:** `lib/screens/patient/management_screen.dart`
 
-**Purpose:** Display the AI management plan (ordered high to low priority).
+Prioritized AI management plan. Updates automatically when investigation results are added.
 
-**UI:**
-- Numbered list of management items
-- Each item shows priority number + text
-- Updated automatically when investigation results are added (via InvestigationScreen)
-
-**API Call:** `GET /patients/:patient_id/management` (on load)
-
-**Navigation:** Next → ReportScreen | Back → InvestigationScreen
+**API Call:** `GET /patients/:patient_id/management`
 
 ---
 
-## 6. ReportScreen
-
+### ReportScreen
 **File:** `lib/screens/patient/report_screen.dart`
 
-**Purpose:** Full patient summary — all info, investigations with results, and management plan in one view.
-
-**Sections:**
-1. **Patient** — name, age, sex, allergies, pre-existing conditions
-2. **Symptoms** — full symptom description
-3. **Investigations** — each item + result (if entered)
-4. **Management Plan** — prioritized list
+Full patient summary: demographics, symptoms, investigations + results, management plan.
 
 **API Calls (parallel):**
 - `GET /patients/:patient_id`
 - `GET /patients/:patient_id/investigations`
 - `GET /patients/:patient_id/management`
 
-**Navigation:** Done → HomeScreen (clears navigation stack)
-
 ---
 
-## 7. ChatIntroScreen
+## Chat Screens
 
+### ChatIntroScreen
 **File:** `lib/screens/chat/chat_intro_screen.dart`
 
-**Purpose:** Intro/welcome screen before starting a chat session.
-
-**UI:**
-- App icon
-- Welcome message
-- Three feature highlights (evidence-based, memory, drug info)
-- "Start Conversation" button
-
-**No API calls.**
-
-**Navigation:** Start → ChatScreen
+Welcome screen with feature highlights before starting a session. "Start Conversation" navigates to ChatScreen.
 
 ---
 
-## 8. ChatScreen
-
+### ChatScreen
 **File:** `lib/screens/chat/chat_screen.dart`
 
-**Purpose:** Full conversational AI chat interface.
+Full conversational AI chat interface.
 
-**UI:**
-- Chat bubbles (user = right/dark blue, AI = left/white)
-- AI responses rendered as Markdown (supports bold, lists, etc.)
-- Animated typing indicator (three bouncing dots) while waiting
-- Input bar with multi-line text field and send button
-- Clear chat button in app bar
+**Features:**
+- Chat bubbles: user (right/dark blue), AI (left/white)
+- Markdown rendering in AI responses
+- **Severity badge** on AI messages (mild / moderate / severe)
+- **Reply-to** — swipe or long-press a message to reply in context
+- **Image attachments** — attach from gallery or camera
+- **Speech-to-Text** — tap mic, speak; live transcript appears in input field
+- **Text-to-Speech** — AI reads responses aloud
+- **Message search** — search bar filters messages in the session
+- **PDF export** — export full chat as a PDF report
+- **Offline caching** — messages cached locally when offline
+- Animated typing indicator while waiting for AI
 
-**Behavior:**
-- Loads `user_id` from SharedPreferences (set at login)
-- Falls back to `'guest'` if not logged in
-- History is stored in MongoDB and automatically sent to the AI on each message
+**Drawer (☰):**
+- Session list + new chat
+- Dark mode toggle
+- Medications shortcut
+- New Patient shortcut (doctor only)
+- Logout
+- Medical disclaimer
 
 **API Calls:**
-- `POST /ai_response` (on each message sent)
-- `DELETE /chat/:user_id` (on clear button)
+- `POST /ai_response` (each message)
+- `DELETE /chat/:user_id` (clear history)
+
+---
+
+### ChatHistoryScreen
+**File:** `lib/screens/chat/chat_history_screen.dart`
+
+List of all past chat sessions. Tap to resume any session.
+
+---
+
+## Consultation Screens
+
+### ConsultationListScreen
+**File:** `lib/screens/consultation/consultation_screen.dart`
+
+Lists all consultation rooms for the current user (patient or doctor). Shows the other party's name and last message preview.
+
+**API Calls:**
+- `GET /consultations/patient/:patient_id` (patient)
+- `GET /consultations/doctor/:doctor_id` (doctor)
+
+---
+
+### ConsultationScreen
+**File:** `lib/screens/consultation/consultation_screen.dart`
+
+Real-time Patient↔Doctor direct messaging. Messages polled every 5 seconds.
+
+**API Calls:**
+- `GET /consultations/:room_id/messages` (polled every 5 s)
+- `POST /consultations/:room_id/message` (send)
+
+---
+
+## Pharmacy Screens
+
+### PharmacyScreen
+**File:** `lib/screens/pharmacy/`
+
+Browse 20 medicines by category. Add to cart, view details, prescription indicator.
+
+**Promo codes:** `HEALTH10` (10%), `SAVE20` (20%), `WELCOME15` (15%)
+
+**Delivery:** EGP 15 flat, free over EGP 200
+
+**Checkout options:**
+- Cash on Delivery
+- Credit/Debit Card — full form with validation (16-digit number, MM/YY expiry, CVV, cardholder name)
+
+---
+
+## Profile Screen
+
+### ProfileScreen
+**File:** `lib/screens/profile/profile_screen.dart`
+
+Edit user profile: name, phone, age, address, city, governorate. Change password (requires current password). Logout.
+
+**API Calls:**
+- `PUT /users/:user_id` (save profile)
+- `POST /auth/change_password` (change password)
+
+---
+
+## Other Screens
+
+### ActivityScreen
+**File:** `lib/screens/activity/`
+
+Log and view health activities (steps, exercise, sleep, etc.).
+
+---
+
+### MedicationScreen
+**File:** `lib/screens/medication/`
+
+Schedule medication reminders with time, dosage, and recurrence. Notifications fire via `flutter_local_notifications`.
+
+---
+
+### SupportSheet
+**File:** `lib/screens/services/support_sheet.dart`
+
+Contact support via phone call or WhatsApp: `01063334273`.
