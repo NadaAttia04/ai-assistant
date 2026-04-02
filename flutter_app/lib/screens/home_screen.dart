@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../core/theme/app_theme.dart';
+import '../core/services/api_service.dart';
 import 'patient/symptoms_screen.dart';
-import 'chat/chat_intro_screen.dart';
+import 'chat/chat_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -9,7 +11,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.primary,
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -17,24 +19,23 @@ class HomeScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 40),
-              // Header
               Row(
                 children: [
                   Container(
                     width: 44,
                     height: 44,
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.15),
+                      color: AppColors.primary.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(Icons.medical_services_rounded,
-                        color: Colors.white, size: 24),
+                    child: Image.asset('assets/bot_icon.jpg',
+                        width: 28, height: 28, fit: BoxFit.contain),
                   ),
                   const SizedBox(width: 12),
                   const Text(
-                    'AI Assistant',
+                    'Health AI',
                     style: TextStyle(
-                      color: Colors.white,
+                      color: AppColors.primary,
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
                     ),
@@ -45,43 +46,53 @@ class HomeScreen extends StatelessWidget {
               const Text(
                 'Trust your medical\ninformation and wisdom\nin your decisions',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: AppColors.primary,
                   fontSize: 26,
                   fontWeight: FontWeight.w700,
                   height: 1.3,
                 ),
               ),
               const SizedBox(height: 8),
-              Text(
+              const Text(
                 'AI-powered medical guidance for doctors',
-                style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.65),
-                  fontSize: 14,
-                ),
+                style: TextStyle(color: AppColors.textMuted, fontSize: 14),
               ),
               const Spacer(),
-              // Cards
               _HomeCard(
                 icon: Icons.person_add_rounded,
                 title: 'New Patient',
                 subtitle: 'Register patient & get AI recommendations',
                 color: AppColors.secondary,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const SymptomsScreen()),
-                ),
+                onTap: () => Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => const SymptomsScreen())),
               ),
               const SizedBox(height: 16),
               _HomeCard(
                 icon: Icons.chat_rounded,
                 title: 'Chat AI',
                 subtitle: 'Ask any medical question',
-                color: Colors.white.withValues(alpha: 0.15),
-                textColor: Colors.white,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const ChatIntroScreen()),
-                ),
+                color: AppColors.lightGray,
+                textColor: AppColors.primary,
+                onTap: () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  final userId = prefs.getString('user_id') ?? 'guest';
+                  try {
+                    final sessions = await ApiService.getChatSessions(userId);
+                    final String chatId = sessions.isNotEmpty
+                        ? sessions.first.id
+                        : await ApiService.createChatSession(userId);
+                    if (!context.mounted) return;
+                    Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) =>
+                                ChatScreen(chatId: chatId, role: 'doctor')));
+                  } catch (e) {
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context)
+                        .showSnackBar(SnackBar(content: Text('Error: $e')));
+                  }
+                },
               ),
               const SizedBox(height: 40),
             ],
@@ -116,9 +127,7 @@ class _HomeCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(20),
-        ),
+            color: color, borderRadius: BorderRadius.circular(20)),
         child: Row(
           children: [
             Icon(icon, color: textColor, size: 32),
@@ -135,7 +144,8 @@ class _HomeCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(subtitle,
                       style: TextStyle(
-                          color: textColor.withValues(alpha: 0.75), fontSize: 13)),
+                          color: textColor.withValues(alpha: 0.75),
+                          fontSize: 13)),
                 ],
               ),
             ),

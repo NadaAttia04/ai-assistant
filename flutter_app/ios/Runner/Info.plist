@@ -41,6 +41,18 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
+	<key>UIFileSharingEnabled</key>
+	<true/>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Used for voice input in the medical AI assistant chat.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Used to transcribe your voice questions to text.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Used to select medical images to share with the AI assistant.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Used to capture medical images to share with the AI assistant.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>

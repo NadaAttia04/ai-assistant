@@ -17,7 +17,7 @@ try:
     from bson import ObjectId
     from config import MONGODB_URI
     _client = MongoClient(MONGODB_URI, serverSelectionTimeoutMS=2000)
-    _client.server_info()  # will raise if not reachable
+    _client.server_info()
     _db = _client["ai_assistant"]
     _USE_MONGO = True
     print("[DB] Connected to MongoDB")
@@ -62,7 +62,7 @@ def register_user(name, email, password):
         users = _load("users")
         if any(u["email"] == email for u in users):
             return {"error": "Email already registered"}
-        user = {"_id": _new_id(), "name": name, "email": email, "password": password}
+        user = {"_id": _new_id(), "name": name, "email": email, "password": password, "phone": "", "age": "", "address": "", "city": "", "governorate": "", "avatar_url": ""}
         users.append(user)
         _save("users", users)
         return {"user_id": user["_id"]}
@@ -103,7 +103,8 @@ def get_user(user_id):
         return user
 
 
-# ── Chat History ───────────────────────────────────────────────────────────────
+# ── Legacy Chat History (single session per user) ──────────────────────────────
+# Kept for backward compat with /ai_response endpoint used by patient flow.
 
 def get_chat_history(user_id):
     if _USE_MONGO:
@@ -139,6 +140,93 @@ def clear_chat_history(user_id):
         history = _load("chat_history")
         history = [h for h in history if h["user_id"] != user_id]
         _save("chat_history", history)
+
+
+# ── Chat Sessions (multi-session per user) ─────────────────────────────────────
+
+def create_chat_session(user_id):
+    now = datetime.utcnow().isoformat()
+    if _USE_MONGO:
+        result = _db.chat_sessions.insert_one({
+            "user_id": user_id, "title": "New Chat",
+            "created_at": now, "messages": [],
+        })
+        return str(result.inserted_id)
+    else:
+        sessions = _load("chat_sessions")
+        sid = _new_id()
+        sessions.append({
+            "_id": sid, "user_id": user_id, "title": "New Chat",
+            "created_at": now, "messages": [],
+        })
+        _save("chat_sessions", sessions)
+        return sid
+
+
+def get_chat_sessions(user_id):
+    """Returns session metadata list (no messages), newest first."""
+    if _USE_MONGO:
+        items = list(_db.chat_sessions.find(
+            {"user_id": user_id}, {"messages": 0}
+        ).sort("created_at", -1))
+        for s in items:
+            s["_id"] = str(s["_id"])
+        return items
+    else:
+        sessions = _load("chat_sessions")
+        result = [
+            {k: v for k, v in s.items() if k != "messages"}
+            for s in sessions if s["user_id"] == user_id
+        ]
+        return sorted(result, key=lambda x: x.get("created_at", ""), reverse=True)
+
+
+def get_session_messages(chat_id):
+    if _USE_MONGO:
+        s = _db.chat_sessions.find_one({"_id": ObjectId(chat_id)})
+        return s["messages"] if s else []
+    else:
+        sessions = _load("chat_sessions")
+        s = next((x for x in sessions if x["_id"] == chat_id), None)
+        return s["messages"] if s else []
+
+
+def append_to_session(chat_id, messages):
+    if _USE_MONGO:
+        _db.chat_sessions.update_one(
+            {"_id": ObjectId(chat_id)},
+            {"$push": {"messages": {"$each": messages}}},
+        )
+    else:
+        sessions = _load("chat_sessions")
+        for s in sessions:
+            if s["_id"] == chat_id:
+                s["messages"].extend(messages)
+                break
+        _save("chat_sessions", sessions)
+
+
+def update_session_title(chat_id, title):
+    title = (title[:47] + "...") if len(title) > 50 else title
+    if _USE_MONGO:
+        _db.chat_sessions.update_one(
+            {"_id": ObjectId(chat_id)}, {"$set": {"title": title}}
+        )
+    else:
+        sessions = _load("chat_sessions")
+        for s in sessions:
+            if s["_id"] == chat_id:
+                s["title"] = title
+                break
+        _save("chat_sessions", sessions)
+
+
+def delete_chat_session(chat_id):
+    if _USE_MONGO:
+        _db.chat_sessions.delete_one({"_id": ObjectId(chat_id)})
+    else:
+        sessions = _load("chat_sessions")
+        _save("chat_sessions", [s for s in sessions if s["_id"] != chat_id])
 
 
 # ── Patients ───────────────────────────────────────────────────────────────────
@@ -267,3 +355,152 @@ def replace_management(patient_id, items):
         management = [m for m in management if m["patient_id"] != patient_id]
         _save("management", management)
         add_management(patient_id, items)
+
+
+# ── User profile update ─────────────────────────────────────────────────────────
+
+def check_email_exists(email):
+    if _USE_MONGO:
+        return _db.users.find_one({"email": email}) is not None
+    else:
+        users = _load("users")
+        return any(u["email"] == email for u in users)
+
+
+def update_user(user_id, fields: dict):
+    """Update allowed profile fields. Returns updated user or error."""
+    allowed = {"name", "phone", "age", "address", "city", "governorate", "avatar_url"}
+    update_data = {k: v for k, v in fields.items() if k in allowed and v is not None}
+    if not update_data:
+        return {"error": "No valid fields to update"}
+    if _USE_MONGO:
+        res = _db.users.update_one({"_id": ObjectId(user_id)}, {"$set": update_data})
+        if res.matched_count == 0:
+            return {"error": "User not found"}
+        return {"message": "Profile updated"}
+    else:
+        users = _load("users")
+        for u in users:
+            if u["_id"] == user_id:
+                u.update(update_data)
+                _save("users", users)
+                return {"message": "Profile updated"}
+        return {"error": "User not found"}
+
+
+def change_password(user_id, current_password, new_password):
+    if _USE_MONGO:
+        user = _db.users.find_one({"_id": ObjectId(user_id)})
+        if not user:
+            return {"error": "User not found"}
+        if user["password"] != current_password:
+            return {"error": "Current password is incorrect"}
+        _db.users.update_one({"_id": ObjectId(user_id)}, {"$set": {"password": new_password}})
+        return {"message": "Password changed"}
+    else:
+        users = _load("users")
+        for u in users:
+            if u["_id"] == user_id:
+                if u["password"] != current_password:
+                    return {"error": "Current password is incorrect"}
+                u["password"] = new_password
+                _save("users", users)
+                return {"message": "Password changed"}
+        return {"error": "User not found"}
+
+
+# ── Consultation Chat (patient ↔ doctor direct messages) ──────────────────────
+
+def get_or_create_consultation(patient_id, doctor_id, patient_name, doctor_name):
+    """Returns {room_id, created}."""
+    now = datetime.utcnow().isoformat()
+    if _USE_MONGO:
+        room = _db.consultations.find_one(
+            {"patient_id": patient_id, "doctor_id": doctor_id}
+        )
+        if room:
+            return {"room_id": str(room["_id"]), "created": False}
+        result = _db.consultations.insert_one({
+            "patient_id": patient_id, "doctor_id": doctor_id,
+            "patient_name": patient_name, "doctor_name": doctor_name,
+            "created_at": now, "messages": [],
+        })
+        return {"room_id": str(result.inserted_id), "created": True}
+    else:
+        rooms = _load("consultations")
+        room = next(
+            (r for r in rooms if r["patient_id"] == patient_id and r["doctor_id"] == doctor_id),
+            None
+        )
+        if room:
+            return {"room_id": room["_id"], "created": False}
+        rid = _new_id()
+        rooms.append({
+            "_id": rid, "patient_id": patient_id, "doctor_id": doctor_id,
+            "patient_name": patient_name, "doctor_name": doctor_name,
+            "created_at": now, "messages": [],
+        })
+        _save("consultations", rooms)
+        return {"room_id": rid, "created": True}
+
+
+def get_consultation_messages(room_id):
+    if _USE_MONGO:
+        room = _db.consultations.find_one({"_id": ObjectId(room_id)})
+        return room["messages"] if room else []
+    else:
+        rooms = _load("consultations")
+        room = next((r for r in rooms if r["_id"] == room_id), None)
+        return room["messages"] if room else []
+
+
+def send_consultation_message(room_id, sender_role, sender_name, content):
+    """sender_role: 'patient' or 'doctor'"""
+    msg = {
+        "_id": _new_id(),
+        "sender_role": sender_role,
+        "sender_name": sender_name,
+        "content": content,
+        "timestamp": datetime.utcnow().isoformat(),
+    }
+    if _USE_MONGO:
+        _db.consultations.update_one(
+            {"_id": ObjectId(room_id)},
+            {"$push": {"messages": msg}},
+        )
+    else:
+        rooms = _load("consultations")
+        for r in rooms:
+            if r["_id"] == room_id:
+                r["messages"].append(msg)
+                break
+        _save("consultations", rooms)
+    return msg
+
+
+def get_consultations_for_patient(patient_id):
+    if _USE_MONGO:
+        rooms = list(_db.consultations.find({"patient_id": patient_id}, {"messages": 0}))
+        for r in rooms:
+            r["_id"] = str(r["_id"])
+        return rooms
+    else:
+        rooms = _load("consultations")
+        return [
+            {k: v for k, v in r.items() if k != "messages"}
+            for r in rooms if r["patient_id"] == patient_id
+        ]
+
+
+def get_consultations_for_doctor(doctor_id):
+    if _USE_MONGO:
+        rooms = list(_db.consultations.find({"doctor_id": doctor_id}, {"messages": 0}))
+        for r in rooms:
+            r["_id"] = str(r["_id"])
+        return rooms
+    else:
+        rooms = _load("consultations")
+        return [
+            {k: v for k, v in r.items() if k != "messages"}
+            for r in rooms if r["doctor_id"] == doctor_id
+        ]

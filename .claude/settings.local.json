@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(where python:*)",
+      "Bash(python:*)",
+      "Bash(flutter pub:*)",
+      "Bash(dart run:*)",
+      "Bash(flutter build:*)",
+      "Bash(flutter install:*)",
+      "Bash(flutter run:*)",
+      "Bash(adb devices:*)",
+      "Bash(adb:*)",
+      "Bash(flutter devices:*)",
+      "Bash(curl:*)",
+      "Bash(flutter analyze:*)",
+      "Bash(jobs:*)",
+      "Bash(ipconfig:*)",
+      "Bash(netsh advfirewall:*)",
+      "Bash(flutter clean:*)",
+      "Bash(pip show:*)",
+      "Bash(flutter:*)",
+      "Bash(pip install:*)"
+    ]
+  }
+}

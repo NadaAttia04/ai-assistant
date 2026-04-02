@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/theme/app_theme.dart';
+import '../../core/services/api_service.dart';
 import 'chat_screen.dart';
 
 class ChatIntroScreen extends StatelessWidget {
@@ -36,8 +38,7 @@ class ChatIntroScreen extends StatelessWidget {
                         color: AppColors.primary.withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(22),
                       ),
-                      child: const Icon(Icons.medical_services_rounded,
-                          size: 48, color: AppColors.primary),
+                      child: Image.asset('assets/bot_icon.jpg', width: 56, height: 56, fit: BoxFit.contain),
                     ),
                     const SizedBox(height: 24),
                     const Text(
@@ -78,10 +79,14 @@ class ChatIntroScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const ChatScreen()),
-              ),
+              onPressed: () async {
+                final prefs = await SharedPreferences.getInstance();
+                final userId = prefs.getString('user_id') ?? 'guest';
+                final chatId = await ApiService.createChatSession(userId);
+                if (!context.mounted) return;
+                Navigator.push(context,
+                    MaterialPageRoute(builder: (_) => ChatScreen(chatId: chatId, role: 'patient')));
+              },
               icon: const Icon(Icons.chat_rounded),
               label: const Text('Start Conversation'),
             ),
