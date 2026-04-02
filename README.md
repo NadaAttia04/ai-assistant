@@ -8,7 +8,7 @@ Based on the Hakeem-AI architecture, simplified to use the Gemini REST API direc
 
 ## Features
 
-### Authentication & Roles
+### Authentication & Roless
 - **Login / Register** — email + password with tabbed UI
 - **Forgot Password** — email-based reset flow
 - **Guest Access** — continue without an account
