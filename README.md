@@ -1,4 +1,4 @@
-# AI Medical Assistant
+## AI Medical Assistant
 
 A cross-platform mobile AI assistant for patients and doctors, built with Flutter (Android + iOS) and a Python Flask backend powered by Google Gemini 2.5 Flash (free).
 
