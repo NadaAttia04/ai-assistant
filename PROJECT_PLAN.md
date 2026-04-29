@@ -14,7 +14,7 @@ Based on the Hakeem-AI medical assistant architecture — no LangChain, no vecto
 |---------------|------------------------------------------------------|
 | Mobile        | Flutter 3.x (Dart) — Android + iOS                  |
 | Backend       | Python 3.8+, Flask 3.0, Flask-CORS                  |
-| AI            | Google Gemini 2.5 Flash (direct REST API)            |
+| AI            | OpenAI GPT-4o / GPT-4o Mini (via openai Python SDK)  |
 | Database      | MongoDB (optional) with local JSON file fallback     |
 | STT           | speech_to_text ^7.0.0 (device system locale)         |
 | TTS           | flutter_tts ^4.2.0                                   |
@@ -288,11 +288,11 @@ DoctorDashboardScreen
 
 ## AI Layer
 
-### Gemini Integration
+### OpenAI Integration
 
-- **Direct REST API** — no LangChain or SDK
-- **Models (fallback order):** `gemini-2.5-flash` → `gemini-2.0-flash` → `gemini-2.0-flash-lite`
-- **Retry strategy:** On 429/503, waits exact delay Gemini specifies, retries up to 3×, then falls back to next model
+- **openai Python SDK** — `gpt-4o` → `gpt-4o-mini` (fallback)
+- **Models (fallback order):** `gpt-4o` → `gpt-4o-mini`
+- **Retry strategy:** On 429 (`RateLimitError`) or 500/503 (`APIStatusError`), exponential backoff 4s → 8s → 16s, max 3× per model, then falls back to next model
 - **Role-aware system prompt:** `_build_chat_system(role)` — patient = simple language, doctor = clinical/professional
 - **Severity detection:** AI appends `SEVERITY: mild|moderate|severe`; parsed by `_parse_severity()` and shown as badge in chat
 - **Multimodal:** Image + text input supported via `/ai_response_multimodal`
@@ -342,7 +342,7 @@ dependencies:
 
 ```env
 # Backend (.env)
-GEMINI_API_KEY=AIza...
+OPENAI_API_KEY=sk-...
 MONGODB_URI=mongodb://localhost:27017/   # optional
 FLASK_ENV=development
 PORT=5000
@@ -355,7 +355,7 @@ PORT=5000
 | Decision | Rationale |
 |----------|-----------|
 | Flutter over SwiftUI | Single codebase for Android + iOS |
-| Gemini REST over LangChain/OpenAI | Free tier, no third-party SDK dependency |
+| OpenAI over LangChain | Direct SDK, simpler integration, no extra abstraction layer |
 | Provider over Bloc/Riverpod | Simpler state for this app's complexity |
 | MongoDB + JSON fallback | Zero-setup for dev; production-ready with MongoDB |
 | Role-aware AI prompts | Patient needs plain language; doctor needs clinical tone |
@@ -368,7 +368,7 @@ PORT=5000
 ### Completed
 
 - [x] Flask backend with 30+ endpoints
-- [x] Gemini AI integration with retry + model fallback
+- [x] OpenAI GPT-4o integration with retry + model fallback
 - [x] Role-aware system prompts (patient / doctor)
 - [x] Auth: register, login, forgot password, change password, guest access
 - [x] User profiles with avatar upload
