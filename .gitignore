@@ -34,6 +34,7 @@ flutter_app/android/captures/
 flutter_app/android/key.properties
 *.keystore
 *.jks
+flutter_app/android/app/.cxx/
 
 # iOS
 flutter_app/ios/.symlinks/
