@@ -1,4 +1,4 @@
-# AI Medical Assistant
+## AI Medical Assistant
 
 A cross-platform mobile AI assistant for patients and doctors, built with Flutter (Android) and a Python Flask backend powered by OpenAI GPT-4o.
 
@@ -263,6 +263,7 @@ Free delivery on orders above **EGP 200**. Flat delivery fee of **EGP 15** other
 
 ---
 
+<<<<<<< HEAD
 ## Authors
 
 - **Nada Attia** — [GitHub](https://github.com/NadaAttia04)
@@ -272,3 +273,14 @@ Free delivery on orders above **EGP 200**. Flat delivery fee of **EGP 15** other
 ---
 
 *If you find this project useful, consider starring the repository.*
+=======
+- **Nada Attia** → [GitHub Profile](https://github.com/NadaAttia04)  
+- **Farida Ayman** → [GitHub Profile](https://github.com/FaridaAyman)  
+- **Rodina Ahmed** → [GitHub Profile](https://github.com/RodinaAhmed2)
+
+---
+
+⭐ *If you like this project, don't forget to star the repository!*
+
+.
+>>>>>>> 161f4b19930a507ecb72ef80d7477b8b7a1dcf5b
