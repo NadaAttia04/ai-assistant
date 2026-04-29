@@ -6,7 +6,7 @@
 |-------------------|----------|----------------------------------------------|
 | Python            | 3.8+     | https://python.org                           |
 | Flutter SDK       | 3.x      | https://flutter.dev/docs/get-started/install |
-| Google Gemini Key | Free     | https://aistudio.google.com/app/apikey       |
+| OpenAI API Key    | Paid     | https://platform.openai.com/api-keys         |
 | MongoDB           | Optional | Atlas (cloud) or local — has JSON fallback   |
 
 ---
@@ -27,20 +27,19 @@ cp .env.example .env
 Edit `.env`:
 
 ```env
-GEMINI_API_KEY=AIza...        # Your Gemini API key (free)
+OPENAI_API_KEY=sk-...         # Your OpenAI API key
 MONGODB_URI=mongodb://localhost:27017/   # optional — see below
 FLASK_ENV=development
 PORT=5000
 ```
 
-### Getting a free Gemini API key
+### Getting an OpenAI API key
 
-1. Go to https://aistudio.google.com/app/apikey
-2. Click **"Create API key in new project"**
-3. Copy the key (starts with `AIza...`)
+1. Go to https://platform.openai.com/api-keys
+2. Click **"Create new secret key"**
+3. Copy the key (starts with `sk-...`)
 
-> Rate limits on free tier: **10 requests/min**, **250 req/day** per key.
-> If you hit limits, generate a new key in a fresh Google project.
+> Make sure your account has billing set up. GPT-4o requires a paid plan.
 
 ### MongoDB (optional)
 
@@ -171,7 +170,7 @@ org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=512m
 
 | Variable        | Required | Description                                  |
 |-----------------|----------|----------------------------------------------|
-| `GEMINI_API_KEY`| Yes      | Google Gemini API key (free at AI Studio)    |
+| `OPENAI_API_KEY`| Yes      | OpenAI API key (platform.openai.com)         |
 | `MONGODB_URI`   | No       | MongoDB URI — falls back to JSON if missing  |
 | `FLASK_ENV`     | No       | `development` or `production`                |
 | `PORT`          | No       | Backend port (default: 5000)                 |
@@ -183,7 +182,7 @@ org.gradle.jvmargs=-Xmx4g -XX:MaxMetaspaceSize=512m
 Models are tried in order until one succeeds (`backend/modules/ai.py`):
 
 ```python
-MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.0-flash-lite"]
+MODELS = ["gpt-4o", "gpt-4o-mini"]
 ```
 
-The backend automatically retries on 503 (overloaded) and 429 (rate limit), waiting the exact delay Gemini specifies before retrying, then falling back to the next model.
+The backend automatically retries on 429 (rate limit) and 500/503 errors with exponential backoff (4s → 8s → 16s), then falls back to the next model.
