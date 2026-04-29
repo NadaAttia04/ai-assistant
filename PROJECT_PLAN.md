@@ -154,35 +154,36 @@ ai-assistant/
 
 ### Consultation Screens
 
-| # | Screen               | File                                    | Description                                        |
-|---|----------------------|-----------------------------------------|----------------------------------------------------|
-|16 | ConsultationScreen   | `consultation/consultation_screen.dart` | Patient↔Doctor direct chat, polled every 5 s       |
+| # | Screen                   | File                                    | Description                                        |
+|---|--------------------------|-----------------------------------------|----------------------------------------------------|
+|16 | ConsultationListScreen   | `consultation/consultation_screen.dart` | List of all consultation rooms for the user        |
+|17 | ConsultationScreen       | `consultation/consultation_screen.dart` | Patient↔Doctor direct chat, polled every 5 s       |
 
 ### Pharmacy Screens
 
 | # | Screen          | File                           | Description                                             |
 |---|-----------------|--------------------------------|---------------------------------------------------------|
-|17 | PharmacyScreen  | `pharmacy/pharmacy_screen.dart`| Browse 20 medicines; add to cart; promo codes            |
-|18 | CartScreen      | `pharmacy/cart_screen.dart`    | Cart review + delivery fee + promo code application      |
-|19 | CheckoutScreen  | `pharmacy/checkout_screen.dart`| COD or Credit/Debit Card checkout with validation        |
+|18 | PharmacyScreen  | `pharmacy/pharmacy_screen.dart`| Browse 20 medicines; add to cart; promo codes            |
+|19 | CartScreen      | `pharmacy/cart_screen.dart`    | Cart review + delivery fee + promo code application      |
+|20 | CheckoutScreen  | `pharmacy/checkout_screen.dart`| COD or Credit/Debit Card checkout with validation        |
 
 ### Other Screens
 
 | # | Screen              | File                                     | Description                                    |
 |---|---------------------|------------------------------------------|------------------------------------------------|
-|20 | MedicationScreen    | `medication/medication_screen.dart`      | Schedule + manage medication reminders          |
-|21 | ActivityScreen      | `activity/activity_screen.dart`          | Log and view health activities                 |
-|22 | BookingDetailScreen | `activity/booking_detail_screen.dart`    | View appointment booking details               |
-|23 | OrderDetailScreen   | `activity/order_detail_screen.dart`      | View pharmacy order details                    |
-|24 | ProfileScreen       | `profile/profile_screen.dart`            | Edit profile, change password, logout          |
+|21 | MedicationScreen    | `medication/medication_screen.dart`      | Schedule + manage medication reminders          |
+|22 | ActivityScreen      | `activity/activity_screen.dart`          | Log and view health activities                 |
+|23 | BookingDetailScreen | `activity/booking_detail_screen.dart`    | View appointment booking details               |
+|24 | OrderDetailScreen   | `activity/order_detail_screen.dart`      | View pharmacy order details                    |
+|25 | ProfileScreen       | `profile/profile_screen.dart`            | Edit profile, change password, logout          |
 
 ### Service Sheets (Bottom Sheets)
 
 | # | Screen              | File                                     | Description                                    |
 |---|---------------------|------------------------------------------|------------------------------------------------|
-|25 | DoctorBookingSheet  | `services/doctor_booking_sheet.dart`     | Browse doctors, view info, book a slot         |
-|26 | PharmacySheet       | `services/pharmacy_sheet.dart`           | Quick pharmacy entry point                     |
-|27 | SupportSheet        | `services/support_sheet.dart`            | Contact via phone/WhatsApp: 01063334273        |
+|26 | DoctorBookingSheet  | `services/doctor_booking_sheet.dart`     | Browse doctors, view info, book a slot         |
+|27 | PharmacySheet       | `services/pharmacy_sheet.dart`           | Quick pharmacy entry point                     |
+|28 | SupportSheet        | `services/support_sheet.dart`            | Contact via phone/WhatsApp: 01063334273        |
 
 ### Navigation Flow
 

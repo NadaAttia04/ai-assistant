@@ -1,6 +1,6 @@
 ## AI Medical Assistant
 
-A cross-platform mobile AI assistant for patients and doctors, built with Flutter (Android) and a Python Flask backend powered by OpenAI GPT-4o.
+A cross-platform mobile AI assistant for patients and doctors, built with Flutter (Android) and a Python Flask backend powered by Google Gemini.
 
 ---
 
@@ -45,7 +45,7 @@ A cross-platform mobile AI assistant for patients and doctors, built with Flutte
 
 ### Backend
 - **Role-aware AI** — patient gets simple language, doctor gets clinical/professional tone
-- **OpenAI retry + fallback** — `gpt-4o` → `gpt-4o-mini`, exponential backoff on 429/500/503
+- **Gemini retry + fallback** — `gemini-2.5-flash` → `gemini-2.0-flash` → `gemini-2.0-flash-lite`, exponential backoff on 429/503
 - **Magic-byte image detection** — detects JPEG, PNG, GIF, WebP regardless of client content-type header
 - **PDF text extraction** — extracts text from uploaded PDFs via pypdf before sending to AI
 - **Consultation rooms** — persistent Patient↔Doctor message threads
@@ -66,8 +66,8 @@ A cross-platform mobile AI assistant for patients and doctors, built with Flutte
 │        Flutter App          │ ─────────────────────── │      Python Flask API        │
 │          (Android)          │                         │                              │
 │                             │                         │  ┌──────────────────────┐    │
-│  SplashScreen               │   POST /auth/login      │  │   OpenAI GPT-4o      │    │
-│  LoginScreen                │   POST /auth/register   │  │   GPT-4o Mini        │    │
+│  SplashScreen               │   POST /auth/login      │  │   Google Gemini      │    │
+│  LoginScreen                │   POST /auth/register   │  │   2.5-flash fallback │    │
 │  RoleScreen                 │   PUT  /users/<id>      │  │   retry + fallback   │    │
 │                             │                         │  └──────────────────────┘    │
 │  PatientHomeScreen          │   POST /patients        │                              │
@@ -91,8 +91,8 @@ A cross-platform mobile AI assistant for patients and doctors, built with Flutte
 
 ```bash
 cd backend
-# Create .env file and add your OpenAI API key
-echo "OPENAI_API_KEY=your_key_here" > .env
+# Create .env file and add your Gemini API key
+echo "GEMINI_API_KEY=your_key_here" > .env
 echo "MONGODB_URI=mongodb://localhost:27017/medical_db" >> .env
 echo "FLASK_ENV=development" >> .env
 echo "PORT=5000" >> .env
@@ -130,11 +130,11 @@ ai-assistant/
 ├── README.md
 ├── backend/
 │   ├── app.py                        # All Flask routes
-│   ├── config.py                     # Env loading (OPENAI_API_KEY, MONGODB_URI)
+│   ├── config.py                     # Env loading (GEMINI_API_KEY, MONGODB_URI)
 │   ├── requirements.txt
 │   ├── .env                          # API keys (not committed)
 │   └── modules/
-│       ├── ai.py                     # OpenAI calls, retry + model fallback
+│       ├── ai.py                     # Gemini calls, retry + model fallback
 │       ├── mongodb.py                # DB layer (MongoDB + JSON fallback)
 │       └── services_data.py          # Static doctors/medicines/appointments data
 └── flutter_app/
@@ -201,7 +201,7 @@ ai-assistant/
 |---------------|---------------------------------------------------------|
 | Mobile        | Flutter 3.x (Dart) — Android                           |
 | Backend       | Python 3.8+, Flask 3.0                                  |
-| AI            | OpenAI GPT-4o / GPT-4o Mini (via openai Python SDK)    |
+| AI            | Google Gemini 2.5 Flash / 2.0 Flash (via REST API)     |
 | Database      | MongoDB (optional) with JSON file fallback              |
 | PDF Parsing   | pypdf 4.2.0                                             |
 | STT           | speech_to_text ^7.0.0 (device system locale)            |
@@ -224,8 +224,8 @@ ai-assistant/
 
 The backend implements a two-dimensional resilience strategy:
 
-- **Exponential backoff** — on `RateLimitError` (429) or `APIStatusError` (500/503), waits 4s → 8s → 16s between retries (max 3 per model)
-- **Model fallback chain** — `gpt-4o` → `gpt-4o-mini`; if all retries on the primary model fail, automatically switches to the fallback model
+- **Exponential backoff** — on 429 (rate limit) or 503 (overloaded), waits the exact delay Gemini specifies before retrying (max 3 per model)
+- **Model fallback chain** — `gemini-2.5-flash` → `gemini-2.0-flash` → `gemini-2.0-flash-lite`; if all retries on one model fail, automatically switches to the next
 - **Severity detection** — AI appends `SEVERITY: mild|moderate|severe` to symptom responses; parsed and displayed as a color-coded badge in the chat interface
 - **Image type detection** — detects image format from magic bytes (JPEG: `\xff\xd8`, PNG: `\x89PNG`, GIF, WebP) regardless of the MIME type sent by the client
 
@@ -235,11 +235,10 @@ The backend implements a two-dimensional resilience strategy:
 
 | Variable | Description |
 |----------|-------------|
-| `OPENAI_API_KEY` | Your OpenAI API key |
+| `GEMINI_API_KEY` | Your Google Gemini API key (free at AI Studio) |
 | `MONGODB_URI` | MongoDB connection string (optional) |
 | `FLASK_ENV` | `development` or `production` |
 | `PORT` | Server port (default: 5000) |
-| `RAG_ADMIN_KEY` | Admin key for protected endpoints |
 
 ---
 
@@ -263,24 +262,12 @@ Free delivery on orders above **EGP 200**. Flat delivery fee of **EGP 15** other
 
 ---
 
-<<<<<<< HEAD
 ## Authors
 
 - **Nada Attia** — [GitHub](https://github.com/NadaAttia04)
 - **Farida Ayman** — [GitHub](https://github.com/FaridaAyman)
-- **Rodina Ahmed** — [GitHub](https://github.com/RodinaAhmed)
-
----
-
-*If you find this project useful, consider starring the repository.*
-=======
-- **Nada Attia** → [GitHub Profile](https://github.com/NadaAttia04)  
-- **Farida Ayman** → [GitHub Profile](https://github.com/FaridaAyman)  
-- **Rodina Ahmed** → [GitHub Profile](https://github.com/RodinaAhmed2)
+- **Rodina Ahmed** — [GitHub](https://github.com/RodinaAhmed2)
 
 ---
 
 ⭐ *If you like this project, don't forget to star the repository!*
-
-.
->>>>>>> 161f4b19930a507ecb72ef80d7477b8b7a1dcf5b
