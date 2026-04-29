@@ -9,7 +9,7 @@ import '../models/management.dart';
 import '../models/patient.dart';
 
 class ApiService {
-  static const _base = 'http://192.168.1.7:5000';
+  static const _base = 'http://192.168.1.6:5000';
   static final _headers = {'Content-Type': 'application/json'};
 
   // ── Auth ──────────────────────────────────────────────────────────────────
