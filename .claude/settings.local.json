@@ -19,7 +19,9 @@
       "Bash(flutter clean:*)",
       "Bash(pip show:*)",
       "Bash(flutter:*)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "mcp__claude_ai_Excalidraw__read_me",
+      "mcp__claude_ai_Excalidraw__create_view"
     ]
   }
 }

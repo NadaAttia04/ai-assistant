@@ -1,45 +1,48 @@
 import base64
 import json
 import time
-import requests
-from config import GEMINI_API_KEY
+from openai import OpenAI, RateLimitError, APIStatusError
+from config import OPENAI_API_KEY
 
-MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.0-flash-lite"]
+_client = OpenAI(api_key=OPENAI_API_KEY)
+
+MODELS = ["gpt-4o", "gpt-4o-mini"]
 MAX_HISTORY = 20
 MAX_RETRIES = 3
 
 
-# ── Low-level Gemini call ──────────────────────────────────────────────────────
+# ── Low-level OpenAI call ──────────────────────────────────────────────────────
 
-def _call_model(model, system_prompt, contents, temperature):
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
-    payload = {
-        "system_instruction": {"parts": [{"text": system_prompt}]},
-        "contents": contents,
-        "generationConfig": {"temperature": temperature},
-    }
-    response = requests.post(
-        url, params={"key": GEMINI_API_KEY}, json=payload, timeout=60
+def _call_model(model, system_prompt, messages, temperature):
+    response = _client.chat.completions.create(
+        model=model,
+        messages=[{"role": "system", "content": system_prompt}] + messages,
+        temperature=temperature,
+        timeout=60,
     )
-    response.raise_for_status()
-    return response.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+    return response.choices[0].message.content.strip()
 
 
-def _call_with_retry(system_prompt, contents, temperature=0.3):
+def _call_with_retry(system_prompt, messages, temperature=0.3):
     last_error = None
     for model in MODELS:
         for attempt in range(MAX_RETRIES):
             try:
-                result = _call_model(model, system_prompt, contents, temperature)
+                result = _call_model(model, system_prompt, messages, temperature)
                 if model != MODELS[0]:
                     print(f"[AI] Used fallback model: {model}")
                 return result
-            except requests.HTTPError as e:
-                status = e.response.status_code if e.response else 0
+            except RateLimitError as e:
                 last_error = e
-                if status in (429, 503):
-                    wait = _parse_retry_delay(e.response) or (2 ** (attempt + 2))
-                    print(f"[AI] {status} on {model}, retrying in {wait:.0f}s...")
+                wait = 2 ** (attempt + 2)
+                print(f"[AI] 429 on {model}, retrying in {wait}s...")
+                time.sleep(wait)
+                continue
+            except APIStatusError as e:
+                last_error = e
+                if e.status_code in (500, 503):
+                    wait = 2 ** (attempt + 2)
+                    print(f"[AI] {e.status_code} on {model}, retrying in {wait}s...")
                     time.sleep(wait)
                     continue
                 else:
@@ -50,26 +53,12 @@ def _call_with_retry(system_prompt, contents, temperature=0.3):
     raise Exception("The AI service is currently unavailable after multiple retries. Please try again in a few seconds.")
 
 
-def _parse_retry_delay(response):
-    try:
-        details = response.json().get("error", {}).get("details", [])
-        for d in details:
-            delay = d.get("retryDelay", "")
-            if delay:
-                return float(delay.replace("s", "").strip()) + 1
-    except Exception:
-        pass
-    return None
-
-
-def _history_to_contents(history):
-    contents = []
+def _history_to_messages(history):
+    messages = []
     for m in history:
-        role = "model" if m["role"] == "assistant" else "user"
-        contents.append({"role": role, "parts": [{"text": m["content"]}]})
-    while contents and contents[0]["role"] != "user":
-        contents.pop(0)
-    return contents
+        role = "assistant" if m["role"] == "assistant" else "user"
+        messages.append({"role": role, "content": m["content"]})
+    return messages
 
 
 # ── Chat system prompt ─────────────────────────────────────────────────────────
@@ -120,8 +109,8 @@ def _parse_severity(text: str):
 def get_chat_response(user_query, history, role="patient"):
     trimmed = list(history[-MAX_HISTORY:])
     trimmed.append({"role": "user", "content": user_query})
-    contents = _history_to_contents(trimmed)
-    raw = _call_with_retry(_build_chat_system(role), contents)
+    messages = _history_to_messages(trimmed)
+    raw = _call_with_retry(_build_chat_system(role), messages)
     text, severity = _parse_severity(raw)
     return text, severity
 
@@ -131,20 +120,30 @@ def get_chat_response(user_query, history, role="patient"):
 def get_chat_response_with_attachment(text, data_bytes, mime_type, history, role="patient"):
     """Handle any binary attachment (image or PDF) alongside optional text."""
     trimmed = list(history[-MAX_HISTORY:])
-    contents = _history_to_contents(trimmed)
-    parts = []
-    if text:
-        parts.append({"text": text})
-    parts.append({
-        "inline_data": {
-            "mime_type": mime_type,
-            "data": base64.b64encode(data_bytes).decode("utf-8"),
-        }
-    })
-    contents.append({"role": "user", "parts": parts})
-    while contents and contents[0]["role"] != "user":
-        contents.pop(0)
-    raw = _call_with_retry(_build_chat_system(role), contents)
+    messages = _history_to_messages(trimmed)
+    user_content = []
+    if mime_type.startswith("image/"):
+        b64 = base64.b64encode(data_bytes).decode("utf-8")
+        prompt_text = text if text else "Please analyze this medical image and describe your findings in detail."
+        user_content.append({"type": "text", "text": prompt_text})
+        user_content.append({
+            "type": "image_url",
+            "image_url": {"url": f"data:{mime_type};base64,{b64}"},
+        })
+    else:
+        # Non-image files: extract text and send as text content
+        try:
+            from pypdf import PdfReader
+            import io
+            reader = PdfReader(io.BytesIO(data_bytes))
+            pdf_text = "\n".join(page.extract_text() or "" for page in reader.pages)
+            prompt_text = text if text else "Please analyze this medical document and summarize the findings."
+            user_content.append({"type": "text", "text": f"{prompt_text}\n\n[Attached file content]:\n{pdf_text}"})
+        except Exception:
+            prompt_text = text if text else "Please analyze this attached medical file."
+            user_content.append({"type": "text", "text": prompt_text})
+    messages.append({"role": "user", "content": user_content})
+    raw = _call_with_retry(_build_chat_system(role), messages)
     return _parse_severity(raw)
 
 
@@ -177,7 +176,7 @@ def generate_medical_report(messages, role="patient"):
     prompt = f"Role context: {role}\n\nConversation:\n{conversation}"
     return _call_with_retry(
         REPORT_SYSTEM,
-        [{"role": "user", "parts": [{"text": prompt}]}],
+        [{"role": "user", "content": prompt}],
         temperature=0.2,
     )
 
@@ -195,7 +194,7 @@ def get_investigation_recommendations(patient_data, symptoms):
     prompt = f"Patient: {patient_data}\nSymptoms: {symptoms}"
     raw = _call_with_retry(
         INVESTIGATION_SYSTEM,
-        [{"role": "user", "parts": [{"text": prompt}]}],
+        [{"role": "user", "content": prompt}],
         temperature=0.1,
     )
     return _parse_list(raw, "investigations")
@@ -214,7 +213,7 @@ def get_management_recommendations(patient_data, symptoms, investigations):
     prompt = f"Patient: {patient_data}\nSymptoms: {symptoms}\nInvestigations: {investigations}"
     raw = _call_with_retry(
         MANAGEMENT_SYSTEM,
-        [{"role": "user", "parts": [{"text": prompt}]}],
+        [{"role": "user", "content": prompt}],
         temperature=0.1,
     )
     return _parse_list(raw, "management")
@@ -237,7 +236,7 @@ def reconsider_management(patient_data, investigations_with_results, current_man
     )
     raw = _call_with_retry(
         RECONSIDER_SYSTEM,
-        [{"role": "user", "parts": [{"text": prompt}]}],
+        [{"role": "user", "content": prompt}],
         temperature=0.1,
     )
     return _parse_list(raw, "management")

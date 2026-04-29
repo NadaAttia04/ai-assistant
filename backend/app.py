@@ -296,9 +296,20 @@ def analyze_image():
         return jsonify({"error": "user_id, chat_id and image are required"}), 400
     try:
         history = get_session_messages(chat_id)
+        img_bytes = image_file.read()
+        # Detect mime type from magic bytes regardless of what client sends
+        if img_bytes[:4] == b'\x89PNG':
+            mime_type = "image/png"
+        elif img_bytes[:2] == b'\xff\xd8':
+            mime_type = "image/jpeg"
+        elif img_bytes[:4] in (b'GIF8', b'GIF9'):
+            mime_type = "image/gif"
+        elif img_bytes[:4] == b'RIFF' and img_bytes[8:12] == b'WEBP':
+            mime_type = "image/webp"
+        else:
+            mime_type = image_file.content_type or "image/jpeg"
         reply, severity = get_chat_response_with_attachment(
-            query, image_file.read(),
-            image_file.content_type or "image/jpeg", history, role
+            query, img_bytes, mime_type, history, role
         )
         stored_q = query if query else "[image]"
         append_to_session(chat_id, [

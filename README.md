@@ -1,16 +1,14 @@
 # AI Medical Assistant
 
-A cross-platform mobile AI assistant for patients and doctors, built with Flutter (Android + iOS) and a Python Flask backend powered by Google Gemini 2.5 Flash (free).
-
-Based on the Hakeem-AI architecture, simplified to use the Gemini REST API directly — no LangChain, no vector databases, no paid services required.
+A cross-platform mobile AI assistant for patients and doctors, built with Flutter (Android) and a Python Flask backend powered by OpenAI GPT-4o.
 
 ---
 
 ## Features
 
-### Authentication & Roless
+### Authentication & Roles
 - **Login / Register** — email + password with tabbed UI
-- **Forgot Password** — email-based reset flow
+- **Forgot Password** — email-based reset flow (simulated)
 - **Guest Access** — continue without an account
 - **Role Selection** — Patient or Doctor, each with a dedicated home screen
 
@@ -18,40 +16,46 @@ Based on the Hakeem-AI architecture, simplified to use the Gemini REST API direc
 - **AI Chat** — conversational medical assistant with per-session history, Markdown rendering, severity badges (mild / moderate / severe), reply-to, and message search
 - **Speech-to-Text** — live voice input using device system locale; red hint shows while listening
 - **Text-to-Speech** — AI reads responses aloud
+- **Image & File Analysis** — send medical images or PDF documents for AI analysis
 - **Book a Doctor** — browse doctors by specialty, view ratings/prices, select available time slots
 - **Pharmacy** — browse 20 medicines, add to cart, apply promo codes (HEALTH10 / SAVE20 / WELCOME15), checkout with Cash on Delivery or Credit/Debit Card (with validation)
-- **Medication Reminders** — schedule and manage medication alerts
-- **Consultations** — real-time Patient↔Doctor direct chat (polled every 5 s)
-- **Activity Tracking** — log and view health activities
+- **Medication Reminders** — schedule and manage daily medication alerts with local notifications
+- **Consultations** — direct Patient↔Doctor chat (polled every 5s)
+- **Activity Tracking** — view appointment bookings and pharmacy order history
+- **Profile Management** — edit name, phone, age, address, city, governorate, and profile photo
 - **Support** — contact via phone/WhatsApp (`01063334273`)
-- **PDF Export** — export any chat session as a PDF report
+- **PDF Export** — export any chat session as a structured medical report
 
 ### Doctor
-- **Doctor Dashboard** — stats header + quick actions (New Patient, AI Chat, Appointments, Queue, Activity, Consultations)
+- **Doctor Dashboard** — stats header + quick actions (New Patient, AI Chat, Appointments, Queue, My Schedule, Activity, Consultations)
 - **New Patient Flow** — register a patient, describe symptoms, get AI-generated investigation recommendations and a management plan
 - **Investigation Results** — enter lab/test results; AI reconsiders and updates the management plan
-- **Appointments** — tabbed view of upcoming and past appointments
-- **Patient Queue** — priority-based patient list
+- **Appointments** — tabbed view (All / Confirmed / Pending) with inline confirm/cancel actions
+- **Patient Queue** — priority-based patient list (High / Medium / Low severity)
+- **My Schedule** — manage availability status, consultation fee, working days, and time slots
 - **AI Chat** — professional-tone medical assistant (role-aware system prompt)
 - **Consultations** — respond to patient direct messages
 
 ### Chat Features
 - Drawer side menu: session list, new chat, dark mode toggle, medications, logout, medical disclaimer
 - Severity badge on AI messages (mild / moderate / severe) parsed from AI response
-- Reply-to, message search, image attachments, PDF export
+- Reply-to, message search, image attachments, file attachments, PDF export
 - Dark mode support
 - Offline caching for messages
 
 ### Backend
 - **Role-aware AI** — patient gets simple language, doctor gets clinical/professional tone
-- **Gemini retry + fallback** — `gemini-2.5-flash` → `gemini-2.0-flash` → `gemini-2.0-flash-lite`, retries on 429/503
+- **OpenAI retry + fallback** — `gpt-4o` → `gpt-4o-mini`, exponential backoff on 429/500/503
+- **Magic-byte image detection** — detects JPEG, PNG, GIF, WebP regardless of client content-type header
+- **PDF text extraction** — extracts text from uploaded PDFs via pypdf before sending to AI
 - **Consultation rooms** — persistent Patient↔Doctor message threads
-- **Profile management** — update name, phone, age, address, city, governorate
+- **Profile management** — update name, phone, age, address, city, governorate, avatar
 - **Zero-setup database** — local JSON storage by default; swap to MongoDB when ready
 
 ### Notifications
 - 4 channels: Medication, Appointment, Order, Message
 - Sound + vibration on all channels
+- Exact alarm scheduling for medication reminders
 
 ---
 
@@ -60,21 +64,22 @@ Based on the Hakeem-AI architecture, simplified to use the Gemini REST API direc
 ```
 ┌─────────────────────────────┐        HTTP/JSON        ┌──────────────────────────────┐
 │        Flutter App          │ ─────────────────────── │      Python Flask API        │
-│     (Android + iOS)         │                         │                              │
+│          (Android)          │                         │                              │
 │                             │                         │  ┌──────────────────────┐    │
-│  SplashScreen               │   POST /auth/login      │  │  Gemini 2.5 Flash    │    │
-│  LoginScreen                │   POST /auth/register   │  │  (free REST API)     │    │
-│  RoleScreen                 │   PUT  /users/<id>      │  │  retry + fallback    │    │
+│  SplashScreen               │   POST /auth/login      │  │   OpenAI GPT-4o      │    │
+│  LoginScreen                │   POST /auth/register   │  │   GPT-4o Mini        │    │
+│  RoleScreen                 │   PUT  /users/<id>      │  │   retry + fallback   │    │
 │                             │                         │  └──────────────────────┘    │
 │  PatientHomeScreen          │   POST /patients        │                              │
 │  DoctorDashboardScreen      │   GET  /investigations  │  ┌──────────────────────┐    │
-│                             │   POST /ai_response     │  │  MongoDB (optional)  │    │
-│  ChatScreen                 │   POST /chat            │  │  JSON fallback       │    │
-│  ConsultationScreen         │   POST /consultations   │  │  (auto-detected)     │    │
-│  PharmacyScreen             │   GET  /doctors         │  └──────────────────────┘    │
-│  DoctorBookingSheet         │   GET  /medicines       │                              │
-│  ProfileScreen              │                         │                              │
+│                             │   POST /chat            │  │  MongoDB (optional)  │    │
+│  ChatScreen                 │   POST /analyze_image   │  │  JSON fallback       │    │
+│  ConsultationScreen         │   POST /upload_file     │  │  (auto-detected)     │    │
+│  PharmacyScreen             │   POST /consultations   │  └──────────────────────┘    │
+│  DoctorBookingSheet         │   GET  /doctors         │                              │
+│  ProfileScreen              │   GET  /medicines       │                              │
 │  ActivityScreen             │                         │                              │
+│  ScheduleScreen             │                         │                              │
 └─────────────────────────────┘                         └──────────────────────────────┘
 ```
 
@@ -86,8 +91,11 @@ Based on the Hakeem-AI architecture, simplified to use the Gemini REST API direc
 
 ```bash
 cd backend
-cp .env.example .env
-# Add your free Gemini API key → https://aistudio.google.com/app/apikey
+# Create .env file and add your OpenAI API key
+echo "OPENAI_API_KEY=your_key_here" > .env
+echo "MONGODB_URI=mongodb://localhost:27017/medical_db" >> .env
+echo "FLASK_ENV=development" >> .env
+echo "PORT=5000" >> .env
 
 pip install -r requirements.txt
 python app.py
@@ -101,12 +109,11 @@ python app.py
 cd flutter_app
 flutter pub get
 
-# Android emulator
-flutter run
-
 # Physical device — update _base in lib/core/services/api_service.dart
 # to your machine's local IP (run ipconfig to find it)
 # static const _base = 'http://192.168.1.x:5000';
+
+flutter run
 ```
 
 > **Android firewall** (if on Windows host):
@@ -123,13 +130,13 @@ ai-assistant/
 ├── README.md
 ├── backend/
 │   ├── app.py                        # All Flask routes
-│   ├── config.py                     # Env loading
+│   ├── config.py                     # Env loading (OPENAI_API_KEY, MONGODB_URI)
 │   ├── requirements.txt
-│   ├── .env.example
+│   ├── .env                          # API keys (not committed)
 │   └── modules/
-│       ├── ai.py                     # Gemini REST calls, retry + model fallback
+│       ├── ai.py                     # OpenAI calls, retry + model fallback
 │       ├── mongodb.py                # DB layer (MongoDB + JSON fallback)
-│       └── services_data.py          # Static doctors/medicines data
+│       └── services_data.py          # Static doctors/medicines/appointments data
 └── flutter_app/
     ├── pubspec.yaml
     └── lib/
@@ -137,36 +144,47 @@ ai-assistant/
         ├── core/
         │   ├── theme/app_theme.dart
         │   ├── models/               # message, doctor, medicine, booking, order, chat_session, cart_item
-        │   ├── providers/            # State management
+        │   ├── providers/            # theme_provider (dark/light mode)
         │   └── services/
-        │       ├── api_service.dart  # All HTTP calls
-        │       ├── stt_service.dart  # Speech-to-Text
-        │       ├── tts_service.dart  # Text-to-Speech
+        │       ├── api_service.dart        # All HTTP calls to Flask backend
+        │       ├── stt_service.dart        # Speech-to-Text
+        │       ├── tts_service.dart        # Text-to-Speech
         │       ├── notification_service.dart
-        │       ├── location_service.dart
-        │       ├── activity_service.dart
-        │       └── report_service.dart  # PDF generation
+        │       ├── activity_service.dart   # Bookings & orders (local)
+        │       └── report_service.dart     # PDF generation
         └── screens/
             ├── splash_screen.dart
             ├── role_screen.dart
             ├── auth/
             │   └── login_screen.dart
             ├── patient/
-            │   └── patient_home_screen.dart
+            │   ├── patient_home_screen.dart
+            │   ├── symptoms_screen.dart
+            │   ├── investigation_screen.dart
+            │   ├── management_screen.dart
+            │   └── report_screen.dart
             ├── doctor/
             │   ├── doctor_dashboard_screen.dart
             │   ├── appointments_screen.dart
-            │   └── patient_list_screen.dart
+            │   ├── patient_list_screen.dart
+            │   └── schedule_screen.dart
             ├── chat/
             │   ├── chat_intro_screen.dart
             │   ├── chat_screen.dart
             │   ├── chat_history_screen.dart
-            │   └── widgets/
+            │   └── widgets/chat_drawer.dart
             ├── consultation/
-            │   └── consultation_screen.dart
+            │   └── consultation_screen.dart   # ConsultationScreen + ConsultationListScreen
             ├── pharmacy/
+            │   ├── pharmacy_screen.dart
+            │   ├── cart_screen.dart
+            │   └── checkout_screen.dart
             ├── medication/
+            │   └── medication_screen.dart
             ├── activity/
+            │   ├── activity_screen.dart
+            │   ├── booking_detail_screen.dart
+            │   └── order_detail_screen.dart
             ├── profile/
             │   └── profile_screen.dart
             └── services/
@@ -179,17 +197,18 @@ ai-assistant/
 
 ## Tech Stack
 
-| Layer        | Technology                                          |
-|--------------|-----------------------------------------------------|
-| Mobile       | Flutter 3.x (Dart) — Android + iOS                 |
-| Backend      | Python 3.8+, Flask 3.0                             |
-| AI           | Google Gemini 2.5 Flash (free REST API)            |
-| Database     | MongoDB (optional) with JSON file fallback         |
-| STT          | speech_to_text ^7.0.0 (device system locale)       |
-| TTS          | flutter_tts ^4.2.0                                 |
-| Notifications| flutter_local_notifications ^18.0.1                |
-| PDF          | pdf ^3.11.2 + printing ^5.13.1                     |
-| State        | provider + shared_preferences                      |
+| Layer         | Technology                                              |
+|---------------|---------------------------------------------------------|
+| Mobile        | Flutter 3.x (Dart) — Android                           |
+| Backend       | Python 3.8+, Flask 3.0                                  |
+| AI            | OpenAI GPT-4o / GPT-4o Mini (via openai Python SDK)    |
+| Database      | MongoDB (optional) with JSON file fallback              |
+| PDF Parsing   | pypdf 4.2.0                                             |
+| STT           | speech_to_text ^7.0.0 (device system locale)            |
+| TTS           | flutter_tts ^4.2.0                                      |
+| Notifications | flutter_local_notifications ^18.0.1                     |
+| PDF Export    | pdf ^3.11.2 + printing ^5.13.1                          |
+| State         | provider + shared_preferences                           |
 
 ---
 
@@ -203,10 +222,36 @@ ai-assistant/
 
 ## AI Reliability
 
-The backend uses a **retry + fallback** strategy:
-- On 503 / 429 → waits the exact delay Gemini specifies, then retries (up to 3×)
-- Falls back through: `gemini-2.5-flash` → `gemini-2.0-flash` → `gemini-2.0-flash-lite`
-- Severity detection: AI appends `SEVERITY: mild|moderate|severe`, parsed and shown as a badge in chat
+The backend implements a two-dimensional resilience strategy:
+
+- **Exponential backoff** — on `RateLimitError` (429) or `APIStatusError` (500/503), waits 4s → 8s → 16s between retries (max 3 per model)
+- **Model fallback chain** — `gpt-4o` → `gpt-4o-mini`; if all retries on the primary model fail, automatically switches to the fallback model
+- **Severity detection** — AI appends `SEVERITY: mild|moderate|severe` to symptom responses; parsed and displayed as a color-coded badge in the chat interface
+- **Image type detection** — detects image format from magic bytes (JPEG: `\xff\xd8`, PNG: `\x89PNG`, GIF, WebP) regardless of the MIME type sent by the client
+
+---
+
+## Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `OPENAI_API_KEY` | Your OpenAI API key |
+| `MONGODB_URI` | MongoDB connection string (optional) |
+| `FLASK_ENV` | `development` or `production` |
+| `PORT` | Server port (default: 5000) |
+| `RAG_ADMIN_KEY` | Admin key for protected endpoints |
+
+---
+
+## Pharmacy Promo Codes
+
+| Code | Discount |
+|------|----------|
+| `HEALTH10` | 10% off |
+| `SAVE20` | 20% off |
+| `WELCOME15` | 15% off |
+
+Free delivery on orders above **EGP 200**. Flat delivery fee of **EGP 15** otherwise.
 
 ---
 
@@ -216,15 +261,14 @@ The backend uses a **retry + fallback** strategy:
 - [Setup Guide](docs/SETUP.md)
 - [Screen Descriptions](docs/SCREENS.md)
 
-- ## 🧑‍💻 Author
+---
 
-- **Nada Attia** → [GitHub Profile](https://github.com/NadaAttia04)  
-- **Farida Ayman** → [GitHub Profile](https://github.com/FaridaAyman)  
-- **Rodina Ahmed** → [GitHub Profile](https://github.com/RodinaAhmed)
+## Authors
+
+- **Nada Attia** — [GitHub](https://github.com/NadaAttia04)
+- **Farida Ayman** — [GitHub](https://github.com/FaridaAyman)
+- **Rodina Ahmed** — [GitHub](https://github.com/RodinaAhmed)
 
 ---
 
-⭐ *If you like this project, don't forget to star the repository!*
-
-
-
+*If you find this project useful, consider starring the repository.*
