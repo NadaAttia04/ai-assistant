@@ -7,6 +7,7 @@ class NotificationService {
 
   static Future<void> init() async {
     tz.initializeTimeZones();
+    tz.setLocalLocation(tz.getLocation('Africa/Cairo'));
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
     const ios = DarwinInitializationSettings(
       requestAlertPermission: true,
@@ -27,12 +28,14 @@ class NotificationService {
     await androidPlugin?.requestExactAlarmsPermission();
   }
 
+  // v2 channel uses the device's default alarm sound
   static const _medicationChannel = AndroidNotificationDetails(
-    'medication_channel',
+    'medication_channel_v2',
     'Medication Reminders',
     channelDescription: 'Daily medication reminders',
     importance: Importance.max,
     priority: Priority.high,
+    sound: UriAndroidNotificationSound('content://settings/system/alarm_alert'),
     playSound: true,
     enableVibration: true,
     icon: '@mipmap/ic_launcher',
