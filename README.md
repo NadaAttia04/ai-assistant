@@ -23,7 +23,7 @@ A cross-platform mobile AI assistant for patients and doctors, built with Flutte
 - **Consultations** — direct Patient↔Doctor chat (polled every 5s)
 - **Activity Tracking** — view appointment bookings and pharmacy order history
 - **Profile Management** — edit name, phone, age, address, city, governorate, and profile photo
-- **Support** — contact via phone/WhatsApp (`01063334273`)
+- **Support** — contact via phone/WhatsApp (`010XXXXXXXX`)
 - **PDF Export** — export any chat session as a structured medical report
 
 ### Doctor
