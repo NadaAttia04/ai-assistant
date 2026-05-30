@@ -1,6 +1,6 @@
 ## AI Medical Assistant
 
-A cross-platform mobile AI assistant for patients and doctors, built with Flutter (Android) and a Python Flask backend powered by OpenAI GPT-4o.
+A cross-platform AI assistant for patients and doctors, built with Flutter (Android, iOS, Web) and a Python Flask backend powered by OpenAI GPT-4o.
 
 ---
 
@@ -65,7 +65,7 @@ A cross-platform mobile AI assistant for patients and doctors, built with Flutte
 ```
 ┌─────────────────────────────┐        HTTP/JSON        ┌──────────────────────────────┐
 │        Flutter App          │ ─────────────────────── │      Python Flask API        │
-│          (Android)          │                         │                              │
+│      (Cross-Platform)       │                         │                              │
 │                             │                         │  ┌──────────────────────┐    │
 │  SplashScreen               │   POST /auth/login      │  │   OpenAI GPT-4o      │    │
 │  LoginScreen                │   POST /auth/register   │  │   GPT-4o Mini        │    │
@@ -226,7 +226,7 @@ ai-assistant/
 
 | Layer         | Technology                                              |
 |---------------|---------------------------------------------------------|
-| Mobile        | Flutter 3.x (Dart) — Android                           |
+| Mobile/Web    | Flutter 3.x (Dart) — Android, iOS, Web                 |
 | Backend       | Python 3.8+, Flask 3.0                                  |
 | AI            | OpenAI GPT-4o / GPT-4o Mini (via openai Python SDK)    |
 | Database      | MongoDB (optional) with JSON file fallback              |
