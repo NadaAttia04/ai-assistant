@@ -14,6 +14,7 @@ import 'schedule_screen.dart';
 import '../activity/activity_screen.dart';
 import '../profile/profile_screen.dart';
 import '../consultation/consultation_screen.dart';
+import '../ai_models/ai_models_screen.dart';
 
 class DoctorDashboardScreen extends StatefulWidget {
   const DoctorDashboardScreen({super.key});
@@ -323,6 +324,16 @@ class _DoctorDashboardScreenState extends State<DoctorDashboardScreen> {
                         subtitle: 'Chat with patients',
                         color: const Color(0xFFB45309),
                         onTap: _openConsultations,
+                      ),
+                      _ActionCard(
+                        icon: Icons.biotech_rounded,
+                        title: 'AI Models',
+                        subtitle: 'Pathology image analysis',
+                        color: const Color(0xFF7C3AED),
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const AIModelsScreen()),
+                        ),
                       ),
                     ],
                   ),

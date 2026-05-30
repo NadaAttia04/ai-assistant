@@ -13,6 +13,7 @@ import '../activity/activity_screen.dart';
 import '../auth/login_screen.dart';
 import '../profile/profile_screen.dart';
 import '../consultation/consultation_screen.dart';
+import '../ai_models/ai_models_screen.dart';
 
 class PatientHomeScreen extends StatefulWidget {
   const PatientHomeScreen({super.key});
@@ -123,6 +124,13 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const ConsultationListScreen()),
+    );
+  }
+
+  void _openAIModels() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const AIModelsScreen()),
     );
   }
 
@@ -336,6 +344,16 @@ class _PatientHomeScreenState extends State<PatientHomeScreen> {
                         ),
                       ),
                     ],
+                  ),
+
+                  const SizedBox(height: 14),
+                  _ServiceCard(
+                    icon: Icons.biotech_rounded,
+                    title: 'AI Models',
+                    subtitle: 'Colon & breast pathology analysis',
+                    color: const Color(0xFF7C3AED),
+                    onTap: _openAIModels,
+                    fullWidth: true,
                   ),
 
                   const SizedBox(height: 28),

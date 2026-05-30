@@ -25,6 +25,7 @@ A cross-platform mobile AI assistant for patients and doctors, built with Flutte
 - **Profile Management** — edit name, phone, age, address, city, governorate, and profile photo
 - **Support** — contact via phone/WhatsApp (`010XXXXXXXX`)
 - **PDF Export** — export any chat session as a structured medical report
+- **AI Models ** - image analysis
 
 ### Doctor
 - **Doctor Dashboard** — stats header + quick actions (New Patient, AI Chat, Appointments, Queue, My Schedule, Activity, Consultations)
@@ -87,7 +88,7 @@ A cross-platform mobile AI assistant for patients and doctors, built with Flutte
 
 ## Quick Start
 
-### Backend
+### Backend (port 5000)
 
 ```bash
 cd backend
@@ -103,22 +104,40 @@ python app.py
 # Uses local JSON storage automatically if MongoDB is not running
 ```
 
+### AI Models Backend (port 5001)
+
+```bash
+cd ai_models_backend
+python -m venv venv
+venv\Scripts\activate          # Windows
+pip install -r requirements.txt
+# Install PyTorch with CUDA (or remove +cu121 for CPU-only):
+pip install torch==2.1.2+cu121 torchvision==0.16.2+cu121 --index-url https://download.pytorch.org/whl/cu121
+
+flask run --host=0.0.0.0 --port=5001
+# Endpoints: /predict-pathology (colon), /predict-breast
+```
+
 ### Flutter App
 
 ```bash
 cd flutter_app
 flutter pub get
 
-# Physical device — update _base in lib/core/services/api_service.dart
-# to your machine's local IP (run ipconfig to find it)
-# static const _base = 'http://192.168.1.x:5000';
+# Flutter Web on the same PC
+flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:5000 --dart-define=AI_BASE_URL=http://localhost:5001
 
-flutter run
+# Physical Android phone on the same Wi-Fi
+flutter run --dart-define=API_BASE_URL=http://192.168.1.7:5000 --dart-define=AI_BASE_URL=http://192.168.1.7:5001
+
+# Android emulator
+flutter run --dart-define=API_BASE_URL=http://10.0.2.2:5000 --dart-define=AI_BASE_URL=http://10.0.2.2:5001
 ```
 
 > **Android firewall** (if on Windows host):
 > ```
 > netsh advfirewall firewall add rule name="Flask 5000" dir=in action=allow protocol=TCP localport=5000
+> netsh advfirewall firewall add rule name="Flask 5001" dir=in action=allow protocol=TCP localport=5001
 > ```
 
 ---
@@ -128,7 +147,7 @@ flutter run
 ```
 ai-assistant/
 ├── README.md
-├── backend/
+├── backend/                          # Main Flask API (port 5000)
 │   ├── app.py                        # All Flask routes
 │   ├── config.py                     # Env loading (OPENAI_API_KEY, MONGODB_URI)
 │   ├── requirements.txt
@@ -137,6 +156,14 @@ ai-assistant/
 │       ├── ai.py                     # OpenAI calls, retry + model fallback
 │       ├── mongodb.py                # DB layer (MongoDB + JSON fallback)
 │       └── services_data.py          # Static doctors/medicines/appointments data
+├── ai_models_backend/                # AI image inference server (port 5001)
+│   ├── app.py                        # Flask routes: /predict-pathology, /predict-breast
+│   ├── models.py                     # ResNet34 (colon) + Custom ResNet (breast)
+│   ├── train_breast.py               # Training script for breast cancer model
+│   ├── train_colon.py                # Training script for colon pathology model
+│   ├── requirements.txt
+│   ├── trained_models/               # .pth weight files (not committed)
+│   └── datasets/                     # Training images (not committed)
 └── flutter_app/
     ├── pubspec.yaml
     └── lib/
@@ -249,6 +276,7 @@ The backend implements a two-dimensional resilience strategy:
 |------|----------|
 | `HEALTH10` | 10% off |
 | `SAVE20` | 20% off |
+
 | `WELCOME15` | 15% off |
 
 Free delivery on orders above **EGP 200**. Flat delivery fee of **EGP 15** otherwise.
@@ -271,4 +299,5 @@ Free delivery on orders above **EGP 200**. Flat delivery fee of **EGP 15** other
 
 ---
 
-⭐ *If you like this project, don't forget to star the repository!*
+⭐ *If you like this project, don't forget to star the repository!
+1

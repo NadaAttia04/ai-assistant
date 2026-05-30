@@ -1,0 +1,18 @@
+to run the app
+1. creat environment in backend and ai_models_backend 
+2. install backend requiremet 
+3. install ai_models_backend requirement 
+
+4. 
+run backend in port 5000 
+flask run --host=0.0.0.0 --port=5000
+
+
+and ai_models_backend in port 5001
+flask run --host=0.0.0.0 --port=5001
+
+
+and flutter used this after create envirinment
+flutter run --dart-define=API_BASE_URL=http://192.168.1.7:5000
+
+flutter run -d chrome --dart-define=API_BASE_URL=http://localhost:5000

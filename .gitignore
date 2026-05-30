@@ -58,3 +58,15 @@ D:/gradle-home/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# ── AI Models Backend ──────────────────────────────────────────────────────────
+# Datasets are large and should not be in source control
+ai_models_backend/datasets/
+# Trained model weights (large binary files)
+ai_models_backend/trained_models/
+# Large dataset zip files (breast + colon + any future dataset)
+*.zip
+Breast dataset.zip
+Colon dataset.zip
+[Cc]olon*/
+[Bb]reast*/
